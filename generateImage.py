@@ -31,7 +31,7 @@ def gen_captcha_text_and_image():
     captcha_text = ''.join(captcha_text)
 
     captcha = image.generate(captcha_text)
-    image.write(captcha_text, 'c:/image/pyGenerImage/' + captcha_text + '.jpg')  # 写到文件
+    image.write(captcha_text, 'd:/work/captcha/genCaptcha/test/' + captcha_text + '.jpg')  # 写到文件
 
     captcha_image = Image.open(captcha)
     captcha_image = np.array(captcha_image)
@@ -50,11 +50,11 @@ if __name__ == '__main__':
     # plt.show()
 
     # listRange = []
-    # for i in range(10000):
+    # for i in range(50000):
     #     listRange.append(i)
-    # pool = ThreadPool(9)
+    # pool = ThreadPool(8)
     # pool.map(gen_captcha_text_and_image(), listRange)
     # pool.close()
     # pool.join()
-    for i in range(10000):
+    for i in range(30000):
         gen_captcha_text_and_image()
