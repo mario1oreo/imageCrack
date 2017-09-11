@@ -10,6 +10,8 @@ import numpy as np
 from PIL import Image
 
 # 图片的高度
+from generateImage import gen_captcha_text_and_image
+
 IMAGE_HEIGHT = 20
 # 图片的宽度
 IMAGE_WIDTH = 62
@@ -25,10 +27,10 @@ keep_prob = tf.placeholder(tf.float32)
 
 # 随机获取文件名和图片
 def get_name_and_image():
-    # fileDir = 'D:/work/panjueshu/OK/'
-    # random_file = random.randint(0, 1969)
-    fileDir = 'D:/work/panjueshu/test/'
-    random_file = random.randint(0, 494)
+    fileDir = 'E:/work/captcha/panjueshu/OK/'
+    random_file = random.randint(0, 1969)
+    # fileDir = 'D:/work/captcha/panjueshu/test/'
+    # random_file = random.randint(0, 494)
     all_image = os.listdir(fileDir)
     base = os.path.basename(fileDir + all_image[random_file])
     name = os.path.splitext(base)[0]
@@ -37,6 +39,7 @@ def get_name_and_image():
     # print('image:'+image)
     # print('name:' + name)
     return name, image
+    # return gen_captcha_text_and_image()
 
 
 # 名字转成向量
@@ -74,19 +77,19 @@ def crack_captcha_cnn(w_alpha=0.01, b_alpha=0.1):
     x = tf.reshape(X, shape=[-1, IMAGE_WIDTH, IMAGE_HEIGHT, 1])
 
     # 3 convert layer
-    w_c1 = tf.Variable(w_alpha * tf.random_normal([5, 5, 1, 32]))
+    w_c1 = tf.Variable(w_alpha * tf.random_normal([3, 3, 1, 32]))
     b_c1 = tf.Variable(b_alpha * tf.random_normal([32]))
     conv1 = tf.nn.relu(tf.nn.bias_add(tf.nn.conv2d(x, w_c1, strides=[1, 1, 1, 1], padding='SAME'), b_c1))
     conv1 = tf.nn.max_pool(conv1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
     conv1 = tf.nn.dropout(conv1, keep_prob)
 
-    w_c2 = tf.Variable(w_alpha * tf.random_normal([5, 5, 32, 64]))
+    w_c2 = tf.Variable(w_alpha * tf.random_normal([3, 3, 32, 64]))
     b_c2 = tf.Variable(b_alpha * tf.random_normal([64]))
     conv2 = tf.nn.relu(tf.nn.bias_add(tf.nn.conv2d(conv1, w_c2, strides=[1, 1, 1, 1], padding='SAME'), b_c2))
     conv2 = tf.nn.max_pool(conv2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
     conv2 = tf.nn.dropout(conv2, keep_prob)
 
-    w_c3 = tf.Variable(w_alpha * tf.random_normal([5, 5, 64, 64]))
+    w_c3 = tf.Variable(w_alpha * tf.random_normal([3, 3, 64, 64]))
     b_c3 = tf.Variable(b_alpha * tf.random_normal([64]))
     conv3 = tf.nn.relu(tf.nn.bias_add(tf.nn.conv2d(conv2, w_c3, strides=[1, 1, 1, 1], padding='SAME'), b_c3))
     conv3 = tf.nn.max_pool(conv3, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
@@ -121,29 +124,30 @@ def train_crack_captcha_cnn():
         sess.run(tf.global_variables_initializer())
 
         step = 0
-        baseAcc = 0.8
+        baseAcc = 0
         while True:
-            batch_x, batch_y = get_next_batch(64)
-            _, loss_ = sess.run([optimizer, loss], feed_dict={X: batch_x, Y: batch_y, keep_prob: 0.5})
+            batch_x, batch_y = get_next_batch(128)
+            _, loss_ = sess.run([optimizer, loss], feed_dict={X: batch_x, Y: batch_y, keep_prob: 0.35})
+            # if step % 20 == 0:
             print(step, loss_)
 
             # 每100 Step 计算一次准确率
             if step % 100 == 0:
-                batch_x_test, batch_y_test = get_next_batch(400)
+                batch_x_test, batch_y_test = get_next_batch(100)
                 acc = sess.run(accuracy, feed_dict={X: batch_x, Y: batch_y, keep_prob: 1.})
                 print(step, acc, datetime.datetime.now())
 
-                if acc > 0.9999:
-                    saver.save(sess, "./crack_capcha-step-" + str(step) + "-" + str(acc) + ".model", global_step=step)
-                    break
-                elif acc > baseAcc:
+                if acc > baseAcc:
                     baseAcc = acc
                     saver.save(sess, "./crack_capcha-step-" + str(step) + "-" + str(acc) + ".model", global_step=step)
+                elif acc > 0.99 or (baseAcc > 0.9 and baseAcc > acc):
+                    saver.save(sess, "./crack_capcha-step-" + str(step) + "-" + str(acc) + ".model", global_step=step)
+                    break
 
             step += 1
 
 
-# train_crack_captcha_cnn()
+train_crack_captcha_cnn()
 
 # 训练完成后#掉train_crack_captcha_cnn()，取消下面的注释，开始预测，注意更改预测集目录
 
@@ -168,4 +172,51 @@ def crack_captcha():
             n += 1
         print("准确率：" + str(trueNum/n))
 
-crack_captcha()
+# crack_captcha()
+
+# output = crack_captcha_cnn()
+# saver = tf.train.Saver()
+# sess = tf.InteractiveSession()
+# sess.run(tf.initialize_all_variables())
+# # tf.initialize_all_variables().run()
+# #saver = tf.train.import_meta_graph(
+# #    '/usr/local/spider/someImageHelper/panjueshu/crack_capcha.model.meta')
+# saver.restore(sess, tf.train.latest_checkpoint('/usr/local/spider/someImageHelper/panjueshu/.'))
+
+def initTable():
+    table = []
+    for i in range(256):
+        if i < 180:
+            table.append(0)
+        else:
+            table.append(1)
+    return table
+
+
+def preHandleImage(imagePath):
+    im = Image.open(imagePath)
+    im = im.convert('L')
+    binaryImage = im.point(initTable(), '1')
+    region = (1, 1, 63, 21)
+    img = binaryImage.crop(region)
+    img = np.array(img)
+    # print('image:'+image)
+    # print('name:' + name)
+    return img
+
+# def crack_captcha_with_file(imagePath):
+    # output = crack_captcha_cnn()
+    # saver = tf.train.Saver()
+    # with tf.Session() as sess:
+    #     tf.initialize_all_variables().run()
+    #     saver = tf.train.import_meta_graph(
+    #         'D:/work/pythonWorkspace/someImageHelper/panjueshu/crack_capcha-step-31050-0.980469.model-31050.meta')
+    #     saver.restore(sess, tf.train.latest_checkpoint('D:/work/pythonWorkspace/someImageHelper/panjueshu/.'))
+    #     image = preHandleImage(imagePath)
+    #     image = 1 * (image.flatten())
+    #     predict = tf.argmax(tf.reshape(output, [-1, MAX_CAPTCHA, CHAR_SET_LEN]), 2)
+    #     text_list = sess.run(predict, feed_dict={X: [image], keep_prob: 1})
+    #     vec = text_list[0].tolist()
+    #     predict_text = vec2name(vec)
+    #     print("结果: {}", predict_text)
+    #     return predict_text

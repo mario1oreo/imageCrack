@@ -20,6 +20,6 @@ for i in range(1, 2000):
     region = (1,1,63,21)
     img = binaryImage.crop(region)
     # binaryImage.show()
-    img.save('C:/image/panjueshu/originalImageTemp/' + str(i) + '.bmp')
+    img.save('C:/image/panjueshu/originalImageTemp1/' + str(i) + '.bmp')
 
 
